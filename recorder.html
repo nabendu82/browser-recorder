@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Screen Recorder</title>
+  <link rel="stylesheet" href="page.css">
+</head>
+<body>
+  <main>
+    <section id="pick">
+      <h1>Choose what to record</h1>
+      <p>Pick a screen, window or tab. To capture sound, turn on “Share audio” in the picker.</p>
+      <button id="choose">Choose screen…</button>
+    </section>
+
+    <section id="recording" hidden>
+      <div class="live"><span class="dot"></span><span id="timer">00:00</span></div>
+      <p id="audioNote">Recording. You can switch to another window — stop from here or from the toolbar icon.</p>
+      <button id="stop" class="stop">Stop &amp; save</button>
+    </section>
+
+    <section id="done" hidden>
+      <h1>Saved to Downloads</h1>
+      <p id="savedName"></p>
+      <video id="preview" controls></video>
+      <a id="download" class="btn">Download again</a>
+    </section>
+  </main>
+  <script src="common.js"></script>
+  <script src="recorder.js"></script>
+</body>
+</html>
