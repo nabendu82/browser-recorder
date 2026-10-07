@@ -1,5 +1,5 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -11,6 +11,7 @@
     <section id="pick">
       <h1>Choose what to record</h1>
       <p>Pick a screen, window or tab. To capture sound, turn on “Share audio” in the picker.</p>
+      <p>Video, shared audio and optional microphone audio stay on this device. Nothing is uploaded.</p>
       <button id="choose">Choose screen…</button>
     </section>
 
@@ -21,11 +22,14 @@
     </section>
 
     <section id="done" hidden>
-      <h1>Saved to Downloads</h1>
+      <h1>Recording ready</h1>
+      <p>Your download has been requested. If it did not start, use Download again below.</p>
       <p id="savedName"></p>
       <video id="preview" controls></video>
       <a id="download" class="btn">Download again</a>
     </section>
+    <p id="error" class="error" role="alert" hidden></p>
+    <footer><a href="privacy.html" target="_blank" rel="noopener">Privacy policy</a></footer>
   </main>
   <script src="common.js"></script>
   <script src="recorder.js"></script>

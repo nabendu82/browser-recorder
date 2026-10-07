@@ -58,3 +58,10 @@ video { width: 100%; border-radius: 10px; background: #000; margin-bottom: 16px;
 .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--red); animation: blink 1.2s infinite; }
 @keyframes blink { 50% { opacity: .25; } }
 [hidden] { display: none !important; }
+a { color: var(--accent); }
+footer { margin-top: 20px; font-size: 12px; }
+.error { color: var(--red); margin-top: 16px; }
+.policy { text-align: left; }
+.policy h2 { font-size: 17px; margin: 24px 0 8px; }
+.policy p, .policy li { color: var(--fg); }
+button:disabled { opacity: .6; cursor: default; }

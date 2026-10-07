@@ -67,3 +67,7 @@ button { font: inherit; cursor: pointer; }
 }
 .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--red); animation: blink 1.2s infinite; }
 @keyframes blink { 50% { opacity: .25; } }
+.privacy-note { color: var(--muted); font-size: 11px; margin: 0 2px 12px; }
+footer { margin-top: 12px; text-align: center; font-size: 11px; }
+a { color: var(--accent); }
+[hidden] { display: none !important; }

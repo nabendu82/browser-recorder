@@ -1,7 +1,8 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
+  <title>Browser Recorder</title>
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
@@ -24,8 +25,8 @@
 
     <p class="hint" id="hint"></p>
 
+    <p class="privacy-note">Video, shared audio and optional microphone audio are processed on this device and saved locally. Nothing is uploaded.</p>
     <button id="start" class="primary">Start recording</button>
-    <p class="error" id="error" hidden></p>
   </section>
 
   <section id="recording" hidden>
@@ -33,6 +34,8 @@
     <button id="stop" class="stop">Stop &amp; save</button>
   </section>
 
+  <p class="error" id="error" role="alert" hidden></p>
+  <footer><a href="privacy.html" target="_blank" rel="noopener">Privacy policy</a></footer>
   <script src="popup.js"></script>
 </body>
 </html>

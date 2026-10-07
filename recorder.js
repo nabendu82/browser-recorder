@@ -3,18 +3,25 @@
 
 const $ = (id) => document.getElementById(id);
 const wantMic = new URLSearchParams(location.search).get('mic') === '1';
+const sessionId = crypto.randomUUID();
 
 let recorder = null;
 let streams = [];
 let audio = null;
 let timerId = null;
+let starting = false;
 
 function show(id) {
   for (const s of ['pick', 'recording', 'done']) $(s).hidden = s !== id;
 }
 
 async function begin() {
+  if (starting || recorder) return;
+  starting = true;
+  $('choose').disabled = true;
+  $('error').hidden = true;
   let display;
+  let claimed = false;
   try {
     display = await navigator.mediaDevices.getDisplayMedia({
       video: { frameRate: { ideal: 60 } },
@@ -24,43 +31,57 @@ async function begin() {
       surfaceSwitching: 'include',
       monitorTypeSurfaces: 'include',
     });
-  } catch {
-    show('pick'); // cancelled, or Chrome wants a click first
-    return;
-  }
-  streams = [display];
+    streams = [display];
 
-  if (wantMic) {
-    try {
-      streams.push(await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true },
-      }));
-    } catch {
-      // Mic blocked — keep recording without it.
+    if (wantMic) {
+      try {
+        streams.push(await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: true, noiseSuppression: true },
+        }));
+      } catch {
+        throw new Error('Microphone access failed. Allow access in Chrome, or close this tab and start again with Microphone turned off.');
+      }
     }
+
+    const audioStreams = streams.filter((s) => s.getAudioTracks().length);
+    let audioTracks = [];
+    if (audioStreams.length > 1) {
+      audio = mixAudio(audioStreams);
+      audioTracks = audio.tracks;
+    } else if (audioStreams.length === 1) {
+      audioTracks = audioStreams[0].getAudioTracks();
+    }
+
+    $('audioNote').textContent = audioTracks.length
+      ? 'Recording with sound. You can switch to another window — stop from here or from the toolbar icon.'
+      : 'Recording without sound (“Share audio” was off). Stop from here or from the toolbar icon.';
+
+    const out = new MediaStream([...display.getVideoTracks(), ...audioTracks]);
+    // Chrome's own "Stop sharing" bar ends the video track.
+    display.getVideoTracks()[0].addEventListener('ended', stop);
+
+    const res = await chrome.runtime.sendMessage({ target: 'background', type: 'recorder-started', sessionId });
+    if (!res?.ok) throw new Error(res?.error || 'The recorder could not start.');
+    claimed = true;
+    if (display.getVideoTracks()[0].readyState === 'ended') throw new Error('Screen sharing ended. Choose a screen to try again.');
+    recorder = startRecorder(out, finish);
+    startTimer();
+    show('recording');
+  } catch (err) {
+    streams.forEach((s) => s.getTracks().forEach((t) => t.stop()));
+    streams = [];
+    audio?.ctx.close();
+    audio = null;
+    if (claimed) await chrome.runtime.sendMessage({ target: 'background', type: 'recording-stopped', sessionId });
+    $('error').textContent = err.name === 'NotAllowedError'
+      ? 'Screen sharing was cancelled or blocked. Choose a screen to try again.'
+      : err.message || String(err);
+    $('error').hidden = false;
+    show('pick');
+  } finally {
+    starting = false;
+    $('choose').disabled = false;
   }
-
-  const audioStreams = streams.filter((s) => s.getAudioTracks().length);
-  let audioTracks = [];
-  if (audioStreams.length > 1) {
-    audio = mixAudio(audioStreams);
-    audioTracks = audio.tracks;
-  } else if (audioStreams.length === 1) {
-    audioTracks = audioStreams[0].getAudioTracks();
-  }
-
-  $('audioNote').textContent = audioTracks.length
-    ? 'Recording with sound. You can switch to another window — stop from here or from the toolbar icon.'
-    : 'Recording without sound (“Share audio” was off). Stop from here or from the toolbar icon.';
-
-  const out = new MediaStream([...display.getVideoTracks(), ...audioTracks]);
-  // Chrome's own "Stop sharing" bar ends the video track.
-  display.getVideoTracks()[0].addEventListener('ended', stop);
-
-  recorder = startRecorder(out, finish);
-  startTimer();
-  show('recording');
-  chrome.runtime.sendMessage({ target: 'background', type: 'recorder-started' });
 }
 
 function stop() {
@@ -81,9 +102,9 @@ function finish(blob, filename) {
 
   $('preview').src = url;
   $('savedName').textContent = filename;
-  document.title = 'Recording saved';
+  document.title = 'Recording ready';
   show('done');
-  chrome.runtime.sendMessage({ target: 'background', type: 'recording-stopped' });
+  chrome.runtime.sendMessage({ target: 'background', type: 'recording-stopped', sessionId });
 }
 
 function startTimer() {
@@ -102,7 +123,7 @@ function startTimer() {
 }
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
-  if (msg.target !== 'recorder' || msg.type !== 'stop') return;
+  if (msg.target !== 'recorder' || msg.type !== 'stop' || msg.sessionId !== sessionId) return;
   stop();
   sendResponse({ ok: true });
 });
@@ -113,5 +134,3 @@ window.addEventListener('beforeunload', (e) => {
 
 $('choose').addEventListener('click', begin);
 $('stop').addEventListener('click', stop);
-
-begin();

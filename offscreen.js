@@ -19,7 +19,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   }
 });
 
-async function start({ streamId, mic }) {
+async function start({ streamId, mic, sessionId }) {
   const tab = await navigator.mediaDevices.getUserMedia({
     audio: { mandatory: { chromeMediaSource: 'tab', chromeMediaSourceId: streamId } },
     video: {
@@ -50,7 +50,7 @@ async function start({ streamId, mic }) {
   recorder = startRecorder(out, async (blob, filename) => {
     const url = URL.createObjectURL(blob);
     cleanup();
-    await chrome.runtime.sendMessage({ target: 'background', type: 'recording-stopped' });
+    await chrome.runtime.sendMessage({ target: 'background', type: 'recording-stopped', sessionId });
     await chrome.runtime.sendMessage({ target: 'background', type: 'download', url, filename });
   });
 }

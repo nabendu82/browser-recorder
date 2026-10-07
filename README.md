@@ -12,7 +12,7 @@ No account, no uploads, no tracking. Recordings are saved straight to your Downl
 - **Record a screen or window** using Chrome's built-in picker, with optional system or tab audio.
 - **Add your microphone** (optional). It's mixed with the tab or system audio.
 - Saves **MP4** (opens in QuickTime) when Chrome supports it, otherwise WebM.
-- Records at up to 1080p and 60 fps, at 8 Mbps.
+- Tab recordings request up to 1080p and 60 fps; screen recordings request 60 fps. Actual quality depends on the source and device. Target video bitrate is 8 Mbps.
 - A red **REC** badge on the toolbar icon while recording.
 - Light and dark mode.
 
@@ -20,7 +20,7 @@ No account, no uploads, no tracking. Recordings are saved straight to your Downl
 
 1. Download or clone this repository:
    ```bash
-   git clone https://github.com/<your-username>/browser-recorder.git
+   git clone https://github.com/nabendu82/browser-recorder.git
    ```
 2. Open `chrome://extensions` in Chrome.
 3. Turn on **Developer mode** (top right).
@@ -35,10 +35,10 @@ Requires Chrome 116 or newer.
 2. Choose **This tab** or **Screen / Window**.
 3. Optionally tick **Microphone**. The first time, a tab opens to ask for mic access.
 4. Click **Start recording**.
-   - For **Screen / Window**, choose what to share in Chrome's picker. Turn on **Share audio** to capture sound.
+   - For **Screen / Window**, click **Choose screen…** in the recorder tab, then choose what to share in Chrome's picker. Turn on **Share audio** to capture sound.
 5. To stop, click the icon and choose **Stop & save**, or use Chrome's "Stop sharing" bar.
 
-The file is saved as `Recording YYYY-MM-DD at HH.MM.SS.mp4` in your Downloads folder.
+The filename is `Recording YYYY-MM-DD at HH.MM.SS.mp4` (or `.webm` if MP4 is unavailable). Chrome's download settings determine where it is saved, normally your Downloads folder.
 
 ## How it works
 
@@ -77,6 +77,13 @@ icons/             Extension icons
 - Chrome's own pages (`chrome://…`, the Chrome Web Store) can't be recorded.
 - Whether you get **system audio** from a whole-screen recording on macOS depends on your Chrome and macOS versions. To record a game's sound reliably, use **This tab**.
 - In Screen / Window mode, closing the recorder tab while recording discards the recording. The tab warns you before it closes.
+- Recordings are buffered in memory. Long recordings can use substantial memory; there is no crash recovery.
+
+## Privacy and publishing
+
+See [PRIVACY.md](PRIVACY.md) for the privacy policy and [PUBLISHING.md](PUBLISHING.md) for store listing text, privacy declarations, screenshots, and upload instructions.
+
+Run the regression checks with `node --test tests/*.test.js`. Build the upload ZIP with `python3 scripts/package.py`; the versioned package is written to `dist/` with the manifest at its root.
 
 ## License
 

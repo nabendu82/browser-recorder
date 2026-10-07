@@ -33,14 +33,19 @@ async function handle(msg, sender) {
     case 'start-tab': {
       if (await getState()) throw new Error('Already recording.');
       await ensureOffscreen();
-      const res = await chrome.runtime.sendMessage({
-        target: 'offscreen', type: 'start', streamId: msg.streamId, mic: msg.mic,
-      });
-      if (res?.error) {
+      const sessionId = crypto.randomUUID();
+      try {
+        // Obtain the ID in the worker so the offscreen document can consume it.
+        const streamId = await chrome.tabCapture.getMediaStreamId({ targetTabId: msg.tabId });
+        const res = await chrome.runtime.sendMessage({
+          target: 'offscreen', type: 'start', streamId, mic: msg.mic, sessionId,
+        });
+        if (!res?.ok) throw new Error(res?.error || 'The recorder did not start.');
+      } catch (err) {
         await closeOffscreen();
-        throw new Error(res.error);
+        throw err;
       }
-      await setState({ mode: 'tab', startedAt: Date.now(), tabId: msg.tabId });
+      await setState({ mode: 'tab', startedAt: Date.now(), tabId: msg.tabId, sessionId });
       return { ok: true };
     }
 
@@ -50,9 +55,11 @@ async function handle(msg, sender) {
       return { ok: true };
     }
 
-    // Sent by recorder.html once the user picked a screen/window and recording began.
+    // Reserve the recording after the user picks a surface, before MediaRecorder starts.
     case 'recorder-started':
-      await setState({ mode: 'screen', startedAt: Date.now(), tabId: sender.tab.id });
+      if (await getState()) throw new Error('Already recording. Stop the current recording first.');
+      if (!sender.tab?.id || !msg.sessionId) throw new Error('Invalid recorder session.');
+      await setState({ mode: 'screen', startedAt: Date.now(), tabId: sender.tab.id, sessionId: msg.sessionId });
       return { ok: true };
 
     case 'stop': {
@@ -61,16 +68,19 @@ async function handle(msg, sender) {
       if (rec.mode === 'tab') {
         await chrome.runtime.sendMessage({ target: 'offscreen', type: 'stop' });
       } else {
-        await chrome.tabs.sendMessage(rec.tabId, { target: 'recorder', type: 'stop' }).catch(async () => {
-          await setState(null); // recorder tab is gone
+        const res = await chrome.runtime.sendMessage({
+          target: 'recorder', type: 'stop', sessionId: rec.sessionId,
         });
+        if (!res?.ok) throw new Error('Open the recorder tab to stop and save the recording.');
       }
       return { ok: true };
     }
 
-    case 'recording-stopped':
-      await setState(null);
+    case 'recording-stopped': {
+      const rec = await getState();
+      if (rec?.sessionId === msg.sessionId) await setState(null);
       return { ok: true };
+    }
 
     // Offscreen documents can't use chrome.downloads, so they hand us a blob URL.
     case 'download': {
@@ -86,9 +96,13 @@ async function handle(msg, sender) {
   }
 }
 
+// Serialize state transitions so two recorder pages cannot both claim the recorder.
+let requests = Promise.resolve();
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.target !== 'background') return;
-  handle(msg, sender).then(sendResponse, (err) => sendResponse({ error: err.message }));
+  requests = requests.then(() => handle(msg, sender));
+  requests.then(sendResponse, (err) => sendResponse({ error: err.message }));
+  requests = requests.catch(() => {});
   return true;
 });
 

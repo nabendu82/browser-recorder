@@ -14,4 +14,3 @@ async function ask() {
 }
 
 $('allow').addEventListener('click', ask);
-ask();

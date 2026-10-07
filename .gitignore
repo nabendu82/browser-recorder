@@ -3,6 +3,8 @@
 *.crx
 *.pem
 node_modules/
+dist/
+__pycache__/
 .vscode/
 .idea/
 .claude/

@@ -60,8 +60,7 @@ async function start() {
     if (mode === 'tab') {
       if (mic && !(await micReady())) return;
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      const streamId = await chrome.tabCapture.getMediaStreamId({ targetTabId: tab.id });
-      const res = await send({ type: 'start-tab', streamId, mic, tabId: tab.id });
+      const res = await send({ type: 'start-tab', mic, tabId: tab.id });
       if (res?.error) throw new Error(res.error);
     } else {
       const res = await send({ type: 'start-screen', mic });
@@ -84,8 +83,16 @@ document.querySelectorAll('.opt').forEach((b) => b.addEventListener('click', () 
 $('mic').addEventListener('change', () => chrome.storage.local.set({ mic: $('mic').checked }));
 $('start').addEventListener('click', start);
 $('stop').addEventListener('click', async () => {
-  await send({ type: 'stop' });
-  window.close();
+  $('stop').disabled = true;
+  try {
+    const res = await send({ type: 'stop' });
+    if (res?.error) throw new Error(res.error);
+    window.close();
+  } catch (err) {
+    showError(err.message || String(err));
+  } finally {
+    $('stop').disabled = false;
+  }
 });
 
 chrome.storage.session.onChanged.addListener((changes) => {
